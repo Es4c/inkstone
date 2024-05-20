@@ -1,3 +1,14 @@
+#paper every step relation and methodology
+#implicit function torch autograd, how about with multiple inputs (>2)? calculate by hand and compare
+#how autograd related to eigen
+#what does vjp do
+
+
+#remove global_parser's dependency on inkstone class (check legume)
+#add docmentation on function for user: explain params and funcionality/ for developer: explain why
+#better name (backend)
+#understand vector in vjp/jvp, why they are for forward/backward calculation
+
 from setuptools import setup, find_packages
 import io
 

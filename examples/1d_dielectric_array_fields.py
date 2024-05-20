@@ -11,7 +11,6 @@ Each rod has side length 0.55.
 ...  |   |   |   |  ...
       ¯¯¯     ¯¯¯
 """
-
 from inkstone import Inkstone
 import numpy as np
 
