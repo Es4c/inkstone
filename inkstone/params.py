@@ -178,19 +178,19 @@ class Params:
     @latt_vec.setter
     def latt_vec(self, val: Union[float, Tuple[Tuple[float, float], Tuple[float, float]]]):
         if type(val) is not tuple:
-            val = self.gb.inputParser(((val, 0), (0, 0)))
+            val = self.gb.parseData(((val, 0), (0, 0)),self.gb.float64)
             self.is_1d_latt = True
         else:
             a, b = val
-            an, bn = self.gb.inputParser([self.gb.la.norm(a), self.gb.la.norm(b)])
+            an, bn = self.gb.parseData([self.gb.la.norm(a), self.gb.la.norm(b)],dtype=self.gb.float64)
             # if either latt vec is zero, then it is 1D. Make sure it's x-z for layer solver.
             if an == 0:
-                val =self.gb.inputParser(((bn, 0), (0, 0)))
+                val =self.gb.parseData(((bn, 0), (0, 0)),dtype=self.gb.float64)
                 self.is_1d_latt = True
                 warn("2D structure (in-plane 1D), non-uniform direction is rotated to x axis.")
             if bn == 0:
                 val_old = val
-                val = self.gb.inputParser(((an, 0), (0, 0)))
+                val = self.gb.parseData(((an, 0), (0, 0)),dtype=self.gb.float64)
                 self.is_1d_latt = True
                 if val_old != val:
                     warn("2D structure (in-plane 1D), non-uniform direction is rotated to x axis.")
@@ -261,8 +261,8 @@ class Params:
     @omega.setter
     def omega(self, val: Union[float, complex]):
         if val is not None:
-            self._omega = val
-            self._frequency = val / self.gb.pi / 2.
+            self._omega = self.gb.parseData(val, dtype=self.gb.complex128)
+            self._frequency = self.gb.parseData(val / self.gb.pi / 2.)
             # self.q0_contain_0 = False
             # self._calc_gs()  # recalculating gs because some g may be possibly removed in previous runs to remove Wood's anomaly.
             self._calc_kii()
@@ -326,7 +326,7 @@ class Params:
         if self.k_pa_inci is not None:
             kx, ky = self.k_pa_inci
             if kx == 0. and ky == 0.:
-                self._theta = 0.
+                self._theta = self.gb.dataParser(0.)
                 # self.theta = 0.
                 if self.phi is None:
                     warn("Both kx and ky are zero, but phi is not specified. Now defaulting to phi = 0.", UserWarning)
@@ -359,7 +359,7 @@ class Params:
     @theta.setter
     def theta(self, val: Union[float, complex]):
         if val is not None:
-            self._theta: float = val * self.gb.pi / 180.
+            self._theta: self.gb.float64 = self.gb.parseData(val * self.gb.pi / 180.)
             self._calc_k_pa_inci()
             # self._calc_angles()  # called through _calc_k_pa_inci() - _calc_ks()
         else:
@@ -379,7 +379,7 @@ class Params:
     @phi.setter
     def phi(self, val: float):
         if val is not None:
-            self._phi: float = val * self.gb.pi / 180.
+            self._phi: float = self.gb.parseData(val * self.gb.pi / 180.)
             self._calc_k_pa_inci()
             # self._calc_angles()  # called through _calc_k_pa_inci() -  _calc_ks()
         else:
@@ -571,8 +571,7 @@ class Params:
             ky = self.kii.real * self.gb.cos(self.gb.pi/2 - self._theta) * self.gb.sin(self._phi)
             # This is where it determines that the (kx, ky) of the structure is determined by the incident region's refractive index, theta and phi, not the output region.
 
-            self._k_pa_inci = (kx, ky)
-
+            self._k_pa_inci = [kx, ky]
             self._calc_ks()  # called in `k_pa_inci` setter
 
             # todo: complex kx ky also gives answers, but the physical meaning is different
@@ -650,7 +649,7 @@ class Params:
 
     def _calc_ks(self):
         if self.gs and (self.k_pa_inci is not None):
-            self.ks = [(g[0] + self.k_pa_inci[0], g[1] + self.k_pa_inci[1]) for g in self.gs]
+            self.ks = self.gb.parseData([[g[0] + self.k_pa_inci[0], g[1] + self.k_pa_inci[1]] for g in self.gs], dtype=self.gb.float64)
             self._calc_Km()
             self._calc_q0()
             self._calc_ks_ep_mu()
@@ -658,9 +657,9 @@ class Params:
 
     def _calc_Km(self):
         """Calculate Kx Ky arrays"""
-        if self.ks:
+        if self.ks is not None:
             # t1 = time.process_time()
-            ksa = self.gb.inputParser(self.ks)  # shape (NumG, 2)
+            ksa = self.gb.parseData(self.ks,dtype=self.gb.float64)  # shape (NumG, 2)
             kx = ksa[:, 0]
             ky = ksa[:, 1]
             self.Kx = kx
@@ -717,9 +716,9 @@ class Params:
             # print('_calc_ks_ep_mu', time.process_time()-t1)
 
     def _calc_q0(self):
-        if self._num_g_ac and (self.omega is not None) and self.ks:
+        if None not in [self._num_g_ac,self.omega,self.ks]:
             # t1 = time.process_time()
-            k_parallel = self.gb.linalg.norm(self.gb.inputParser(self.ks), axis=-1)
+            k_parallel = self.gb.la.norm(self.ks, axis=-1)
             q02 = self.gb.ones(self._num_g_ac) * self.gb.square(self.omega) - self.gb.square(k_parallel) + 0j
             self._rad_cha_0 = self.gb.where(q02.real > 0)[0].tolist()  # todo: even for radiation channel, if omega.imag larger than omega.real, q02.real is negative
             q0 = self.gb.sqrt(q02)
@@ -853,7 +852,8 @@ class Params:
             q0h = self.q0_half
             ng = self._num_g_ac
             o = self.omega
-            ksa = self.gb.inputParser(self.ks)
+
+            ksa = self.gb.parseData(self.ks)
             Kx = ksa[:, 0]
             Ky = ksa[:, 1]
             # Kx = self.Kx.copy()
@@ -867,22 +867,22 @@ class Params:
             i_qsw = self.gb.where((self.gb.abs(q0h) < self.gb.abs(o)))[0]
             i_qlw = self.gb.where(self.gb.abs(q0h) > self.gb.abs(o))[0]
             # when allowing imaginary/complex kx, ky: when ky = i kx, q = omega, but k_norm is not zero. But this case doesn't matter. as long as k_norm not zero, it can be divided.
-            idxa = self.gb.inputParser(self.idx_g)
+            idxa = self.gb.parseData(self.idx_g)
             ii = (idxa[:, 0] == 0) & (idxa[:, 1] == 0)
 
-            c1 = self.gb.inputParser([Ky, -Kx], dtype=self.gb.complex128)
-            c2 = self.gb.inputParser([Kx, Ky], dtype=self.gb.complex128)
+            c1 = self.gb.concat([Ky, -Kx])
+            c2 = self.gb.concat([Kx, Ky])
             c1f = self.gb.ones(ng, dtype=self.gb.complex128)
-            c2f = c1f.copy()
+            c2f = self.gb.clone(c1f)
 
             # c1[:, i_knz] = self.gb.inputParser([[1.], [0.]])
             # c2[:, i_knz] = -1j / o * self.gb.inputParser([Kx[i_knz] * Ky[i_knz] / q0h[i_knz], (-self.gb.square(Kx[i_knz]) - self.gb.square(q0h[i_knz])) / q0h[i_knz]])  # should not be |Kx|^2
-            c1[:, i_kez] = self.gb.inputParser([[1.], [0.]], dtype=self.gb.complex128)
-            c2[:, i_kez] = self.gb.inputParser([[0.], [1.]], dtype=self.gb.complex128)
+            c1[:, i_kez] = self.gb.parseData([[1.], [0.]], dtype=self.gb.complex128)
+            c2[:, i_kez] = self.gb.parseData([[0.], [1.]], dtype=self.gb.complex128)
             cphi = self.gb.cos(self._phi)
             sphi = self.gb.sin(self._phi)
-            c1[:, ii] = self.gb.inputParser([[sphi], [-cphi]], dtype=self.gb.complex128)
-            c2[:, ii] = self.gb.inputParser([[cphi], [sphi]], dtype=self.gb.complex128)
+            c1[:, ii] = self.gb.parseData([[sphi], [-cphi]], dtype=self.gb.complex128)
+            c2[:, ii] = self.gb.parseData([[cphi], [sphi]], dtype=self.gb.complex128)
 
             c1f[i_qlw] = o / q0h[i_qlw] / k_norm[i_qlw]
             c2f[i_qlw] = 1j / k_norm[i_qlw]
@@ -915,7 +915,7 @@ class Params:
             psi0[r1, r2] = c1[0, :]
             psi0[r2, r2] = c1[1, :]
 
-            self.phi0_2x2s = self.gb.moveaxis(self.gb.inputParser([c1, c2]), 0, 1)
+            self.phi0_2x2s = self.gb.moveaxis(self.gb.parseData([c1, c2]), 0, 1)
 
             # # debugging,  check if phi is eigen and consistent with psi
             # psi00 = -1j * self.P0 @ phi0 / self.q0
@@ -1191,8 +1191,9 @@ class Params:
         return self._uc_area
 
     def _calc_uc_area(self):
-        if (self.latt_vec).all():
-            if type(self.latt_vec) is not tuple:
+        if type(self.latt_vec) is not None or self.latt_vec is not None:
+            #print(type(self.latt_vec))
+            if not isinstance(self.latt_vec, (tuple, self.gb.raw_type)):
                 self._uc_area = self.latt_vec
             else:
                 a1, a2 = self.latt_vec
@@ -1214,8 +1215,8 @@ class Params:
         if self.ks and self.num_g and (self._theta is not None) and (self._phi is not None) and (self.kii is not None):
             # t1 = time.process_time()
 
-            idxa = self.gb.inputParser(self.idx_g)
-            ksa = self.gb.inputParser(self.ks)
+            idxa = self.gb.parseData(self.idx_g)
+            ksa = self.gb.parseData(self.ks)
             k_pa = self.gb.la.norm(ksa, axis=-1)  # norm of in-plane momentum
             i0 = (k_pa == 0.)
             ib = (k_pa != 0.)
@@ -1297,10 +1298,10 @@ class Params:
                             ex = -s * self.sin_phis[jj] + p * self.sin_varthetas[jj] * self.cos_phis[jj]  # e_x
                             ey = s * self.cos_phis[jj] + p * self.sin_varthetas[jj] * self.sin_phis[jj]  # e_y
                             phi_2x2 = self.phi0_2x2s[:, :, jj]
-                            phi_2x2_i = 1 / self.gb.la.det(phi_2x2) * self.gb.inputParser([[phi_2x2[1, 1], -phi_2x2[0, 1]],
+                            phi_2x2_i = 1 / self.gb.la.det(phi_2x2) * self.gb.parseData([[phi_2x2[1, 1], -phi_2x2[0, 1]],
                                                                         [-phi_2x2[1, 0], phi_2x2[0, 0]]])
                             # v = la.solve(phi_2x2, self.gb.inputParser([ex, ey]))
-                            v = phi_2x2_i @ self.gb.inputParser([ex, ey])
+                            v = phi_2x2_i @ self.gb.parseData([ex, ey])
                             ab[jj] = v[0]
                             ab[jj + self._num_g_ac] = v[1]
 

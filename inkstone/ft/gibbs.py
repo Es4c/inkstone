@@ -31,12 +31,12 @@ def gibbs_corr(ks: List[Union[float, Tuple[float, float], Tuple[float, float, fl
 
     if len(ks) == 1 and (m is None):
         warn('Only one k point is given, with no m specified, can not calculate the correction factor.', UserWarning)
-        s = gb.inputParser([1])
+        s = gb.parseData([1])
     else:
         if m == 0.:
             raise Exception('m can not be zero')
 
-        ksa = gb.inputParser(ks)
+        ksa = gb.parseData(ks)
 
         # calculate the norms of the k's
         if ksa.ndim == 1:
@@ -47,8 +47,9 @@ def gibbs_corr(ks: List[Union[float, Tuple[float, float], Tuple[float, float, fl
 
         # calculate m if not given
         if m is None:
-            knp = gb.partition(kn, -2)
-            m = kn.max() + (knp[-1] - knp[-2])
+            #knp = np.partition(kn, -2) #purpose?
+            knp = gb.sort(kn)
+            m = kn.max() + (knp[-1] - knp[-2])#TODO: undefined order, how specify? topk(largest=False)
             if method == 'Gaussian':
                 m *= 0.7
 

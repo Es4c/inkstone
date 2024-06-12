@@ -16,7 +16,7 @@ def poly_area(vertices,gb=gb):
     a               :   float
                         area of polygon
     """
-    verti = gb.inputParser(vertices)
+    verti = gb.parseData(vertices)
     x = verti[:, 0]
     y = verti[:, 1]
 

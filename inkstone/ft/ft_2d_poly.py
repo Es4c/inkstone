@@ -32,13 +32,13 @@ def ft_2d_poly_1(vertices, ks):
 
     """
     # convert to array
-    ksa = gb.inputParser(ks)  # each row is a [kx, ky]
+    ksa = gb.parseData(ks)  # each row is a [kx, ky]
 
     ks_nm = gb.la.norm(ksa, axis=-1)
     coef = -1j / ks_nm ** 2
 
     # convert tuples to numpy arrays
-    verti = gb.inputParser(vertices)
+    verti = gb.parseData(vertices)
 
     # generate a shifted array of vertices of [r2, r3, ..., rn, r1], if originally [r1, r2, ..., rn]
     verti_roll = gb.roll(verti, -1, axis=0)
@@ -77,13 +77,13 @@ def ft_2d_poly(vertices, ks,gb=gb):
     -----
     For k == (0, 0) and k != (0, 0), call different subroutine.
     """
-    ksa = gb.inputParser(ks)  # convert to array
+    ksa = gb.parseData(ks)  # convert to array
     ks_nm = gb.la.norm(ksa, axis=-1)  # calculate the norm of each k vector
     idx_0 = gb.where(ks_nm == 0)[0]  # index to where k is (0, 0)
     idx_i = gb.where(ks_nm != 0)[0]  # index to where k is not (0, 0)
     ksa1 = gb.delete(ksa, idx_0, axis=0)  # new ks array that doesn't contain (0, 0)
 
-    s1 = gb.inputParser(ft_2d_poly_1(vertices, ksa1))
+    s1 = gb.parseData(ft_2d_poly_1(vertices, ksa1))
     a = poly_area(vertices)
 
     s = 1j * gb.zeros(ks_nm.size)

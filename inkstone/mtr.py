@@ -16,6 +16,7 @@ class Mtr:
         """
         Material.
         """
+        self.gb = gb
         self._epsi: Optional[any] = None
         self._mu: Optional[any] = None
         self._epsi_inv: Optional[any] = None
@@ -39,7 +40,7 @@ class Mtr:
         self.mu = mu
 
         self.name = name
-        self.gb = gb
+        
 
     @property
     def ep_is_diagonal(self) -> bool:
@@ -118,7 +119,7 @@ class Mtr:
                 self.ep_is_vac = True
             else:
                 self.ep_is_vac = False
-        elif self.gb.inputParser(val).ndim == 1 and self.gb.getSize(self.gb.inputParser(val)) == 3:
+        elif self.gb.parseData(val).ndim == 1 and self.gb.getSize(self.gb.parseData(val)) == 3:
             ep = self.gb.diag(val) + 0j
             self._epsi = ep + 0j
             self.ep_is_diagonal = True
@@ -156,7 +157,7 @@ class Mtr:
         adbc = v[0, 0] * v[1, 1] - v[0, 1] * v[1, 0]
         if adbc == 0 or v[2, 2] == 0:
             raise Exception('Singular permittivity tensor.')
-        ei = self.gb.inputParser([[v[1, 1] / adbc, -v[0, 1] / adbc, 0],
+        ei = self.gb.parseData([[v[1, 1] / adbc, -v[0, 1] / adbc, 0],
                        [-v[1, 0] / adbc, v[0, 0] / adbc, 0],
                        [0, 0, 1 / v[2, 2]]], dtype=self.gb.complex128)
         self._epsi_inv = ei
@@ -176,7 +177,7 @@ class Mtr:
                 self.mu_is_vac = True
             else:
                 self.mu_is_vac = False
-        elif self.gb.inputParser(val).ndim == 1 and self.gb.getSize(self.gb.inputParser(val)) == 3:
+        elif self.gb.parseData(val).ndim == 1 and self.gb.getSize(self.gb.parseData(val)) == 3:
             mu = self.gb.diag(val) + 0j
             self._mu = mu + 0j
             self.mu_is_diagonal = True
@@ -214,7 +215,7 @@ class Mtr:
         adbc = v[0, 0] * v[1, 1] - v[0, 1] * v[1, 0]
         if adbc == 0 or v[2, 2] == 0:
             raise Exception('Singular permittivity tensor.')
-        mi = self.gb.inputParser([[v[1, 1] / adbc, -v[0, 1] / adbc, 0],
+        mi = self.gb.parseData([[v[1, 1] / adbc, -v[0, 1] / adbc, 0],
                        [-v[1, 0] / adbc, v[0, 0] / adbc, 0],
                        [0, 0, 1 / v[2, 2]]], dtype=self.gb.complex128)
         self._mu_inv = mi

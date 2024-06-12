@@ -139,6 +139,8 @@ class Inkstone:
     @theta.setter
     def theta(self, val):
         if (val is not None) and (val != self.pr.theta):
+            if val is not self.gb.raw_type:
+                val = self.gb.parseData(val)
             self.pr.theta = val
             for layer_name, layer in self.layers.items():
                 layer.if_mod = True
@@ -715,13 +717,13 @@ class Inkstone:
                 if _n is not None:
                     if not hasattr(_n, "__len__"):
                         _n = [_n]
-                    _n = self.gb.inputParser(_n)
+                    _n = self.gb.parseData(_n)
 
                     if _a is None:
                         raise Exception('You input eigen number but not its amplitude.')
                     elif not hasattr(_a, "__len__"):
                         _a = [_a]
-                    _a = self.gb.inputParser(_a)
+                    _a = self.gb.parseData(_a)
 
                     if len(_a) != len(_n):
                         raise Exception('The length of the amplitudes and the eigen numbers are not the same.')
@@ -798,7 +800,6 @@ class Inkstone:
         o = self.pr.omega
 
         layer_inci: Layer = list(self.layers.values())[0]
-
         aibo = []
         if self.pr.iesbe:
             pass
@@ -839,8 +840,8 @@ class Inkstone:
                                 # with new calc that removed convergence problem at Wood
                                 ex = -s * sp + p * st * cp  # e_x
                                 ey = s * cp + p * st * sp  # e_y
-                                phi_2x2 = layer_inci.phil_2x2s[:, :, jj]
-                                v = self.gb.la.solve(phi_2x2, self.gb.inputParser([ex, ey]))
+                                phi_2x2 = self.gb.castType(layer_inci.phil_2x2s[:, :, jj],self.gb.complex128)
+                                v = self.gb.la.solve(phi_2x2, [ex, ey])
                                 ab[jj] = v[0]
                                 ab[jj + self.pr._num_g_ac] = v[1]
 
@@ -1313,11 +1314,11 @@ class Inkstone:
 
         """
         if z is None:
-            za = self.gb.inputParser([0.])
+            za = self.gb.parseData([0.])
         elif hasattr(z, "__len__"):
-            za = self.gb.inputParser(z)
+            za = self.gb.parseData(z)
         else:
-            za = self.gb.inputParser([z])
+            za = self.gb.parseData([z])
 
         t = self.layers[layer].thickness
         if self.layers[layer].in_mid_out == 'in':
@@ -1382,7 +1383,7 @@ class Inkstone:
             order = [order]
         elif type(order[0]) is int:
             order = [(o, 0) for o in order]
-        idx = self.gb.inputParser([self.pr.idx_g.index(o) for o in order])
+        idx = self.gb.parseData([self.pr.idx_g.index(o) for o in order])
 
         result = [f[idx] for f in [exf, exb, eyf, eyb, ezf, ezb, hxf, hxb, hyf, hyb, hzf, hzb]]
 
@@ -1425,9 +1426,9 @@ class Inkstone:
         exf, exb, eyf, eyb, ezf, ezb, hxf, hxb, hyf, hyb, hzf, hzb = self._calc_field_fs_layer_fb(layer, z)  # each has shape (num_g, len(z))
         ex, ey, ez, hx, hy, hz = [a + b for a, b in [(exf, exb), (eyf, eyb), (ezf, ezb), (hxf, hxb), (hyf, hyb), (hzf, hzb)]]
 
-        xa, ya = self.gb.hsplit(self.gb.inputParser(xy), 2)  # 2d array with one column
+        xa, ya = self.gb.hsplit(self.gb.parseData(xy), 2)  # 2d array with one column
 
-        kxa, kya = self.gb.hsplit(self.gb.inputParser(self.pr.ks), 2)  # 2d array with one column
+        kxa, kya = self.gb.hsplit(self.gb.parseData(self.pr.ks), 2)  # 2d array with one column
 
         phase = xa * kxa.T + ya * kya.T  # shape (len(xy), numg)
 
@@ -1484,9 +1485,9 @@ class Inkstone:
                                      ['x', 'y', 'z']):
             if c is not None:
                 if hasattr(c, '__len__'):
-                    c = self.gb.inputParser(c)
+                    c = self.gb.parseData(c)
                 else:
-                    c = self.gb.inputParser([c])
+                    c = self.gb.parseData([c])
                 u = c
             elif min is None or max is None or n is None:
                 warn(s + " points to get fields not defined properly. Default to 0.")
@@ -1531,9 +1532,9 @@ class Inkstone:
         ll = list(self.layers.keys())
 
         if hasattr(z, "__len__"):
-            za = self.gb.inputParser(z)
+            za = self.gb.parseData(z)
         else:
-            za = self.gb.inputParser([z])
+            za = self.gb.parseData([z])
 
         Fields = [self.gb.zeros((len(xy), len(za)), dtype=self.gb.complex128) for i in range(6)]
 
@@ -1594,9 +1595,9 @@ class Inkstone:
                                      ['x', 'y', 'z']):
             if c is not None:
                 if hasattr(c, '__len__'):
-                    c = self.gb.inputParser(c)
+                    c = self.gb.parseData(c)
                 else:
-                    c = self.gb.inputParser([c])
+                    c = self.gb.parseData([c])
                 u = c
             elif min is None or max is None or n is None:
                 warn(s + " points to get fields not defined properly. Default to 0.")
@@ -1711,7 +1712,7 @@ class Inkstone:
             order = [(o, 0) for o in order]
         else:
             raise('Incorrect datatype for input argument `order`.', RuntimeError)
-        idx = self.gb.inputParser([self.pr.idx_g.index(o) for o in order])
+        idx = self.gb.parseData([self.pr.idx_g.index(o) for o in order])
 
         exf, exb, eyf, eyb, ezf, ezb, hxf, hxb, hyf, hyb, hzf, hzb = self._calc_field_fs_layer_fb(layer, z)
 

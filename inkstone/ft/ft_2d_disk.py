@@ -26,7 +26,7 @@ def ft_2d_disk(r, ks, center=(0,0),gb=gb):
     if not ks:
         return []
     
-    ksa = gb.inputParser(ks,dtype=gb.complex128)  # nx2 shape
+    ksa = gb.parseData(ks,dtype=gb.complex128)  # nx2 shape
     ks_nm = gb.la.norm(ksa, axis=-1)  # 1d array of n. The norm of each k vector
     idx_0 = gb.where(ks_nm == 0)[0]  # index to where k is (0, 0)
     idx_i = gb.where(ks_nm != 0)[0]  # index to where k is not (0, 0)
@@ -34,7 +34,7 @@ def ft_2d_disk(r, ks, center=(0,0),gb=gb):
 
     ksa1 = gb.delete(ksa, idx_0, axis=0)  # new ks array that doesn't contain (0, 0)
 
-    cent = gb.inputParser(center,dtype=gb.complex128)
+    cent = gb.parseData(center,dtype=gb.complex128)
 
     s = 1j * gb.zeros(gb.getSize(ks_nm),dtype=gb.complex128)
  
